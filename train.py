@@ -26,7 +26,11 @@ def main():
                         help='where to write run state')
     parser.add_argument('model', choices=models.get_model_classes(),
                         help='any classname of model as defined in "models.py"')
+    parser.add_argument('--batch_size', type=int, default=128)
+    parser.add_argument('--epochs', type=int, default=150)
     parser.add_argument('--capacity', type=int, default=32)
+    parser.add_argument('--hcnn_undertones', type=int, default=0)
+    parser.add_argument('--hcnn_overtones', type=int, default=1)
     parser.add_argument('--device', type=str, default='cuda')
     args = parser.parse_args()
 
@@ -51,8 +55,8 @@ def main():
 
     train_dataset = ConcatDataset(train_sequences)
 
-    batch_size = 128
-    n_epochs = 150
+    batch_size = args.batch_size
+    n_epochs = args.epochs
 
     # go with the original definition of an 'epoch' (aka the whole dataset ...)
     # as opposed to 'arbitrary number of steps until we validate'

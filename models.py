@@ -1,7 +1,43 @@
 import torch
 from torch import nn
 from torch.nn import init
+import torch.nn.functional as F
 
+
+from math import log2
+
+class HarmonicStacking(nn.Module):
+    def __init__(self, octave_bins, undertones, overtones):
+        super().__init__()
+
+        self.octave_bins = octave_bins
+        self.overtones = overtones
+        self.undertones = undertones
+        self.shifts = []
+        for harmonic in [1/(x+2) for x in range(undertones)]+list(range(1, overtones+1)):
+            self.shifts.append(round(octave_bins*log2(harmonic)))
+        
+        print(self.shifts)
+
+        # for offset in [octave_bins*math.log2(x) for x in range()]:
+    def forward(self, x):
+        # print(x.shape, "-->")
+        channels = []
+        for shift in self.shifts:
+            # print(shift)
+            if shift == 0:
+                padded = x
+            if shift > 0:
+                shifted = x[:, :, :, shift:]
+                padded = F.pad(shifted, (0, shift))
+            else:
+                shifted = x[:, :, :, :shift]
+                padded = F.pad(shifted, (shift, 0))
+
+            channels.append(padded)
+        x = torch.cat(channels, 1)
+        # print(x.shape)
+        return x
 
 class VGGNet2016(nn.Module):
     def __init__(self, args):
@@ -80,41 +116,49 @@ class AllConv2016(nn.Module):
             affine=True,   # we learn a translation, called 'beta' in the paper and lasagne
             track_running_stats=True
         )
-        cap = args.capacity
+        hcnn_mult = args.hcnn_undertones+args.hcnn_overtones
+        conv_in_cap = args.capacity # input capacity for ordinary conv layers
+        hcnn_conv_in_cap = conv_in_cap * hcnn_mult # input capacity for conv layers after harmonic stacking
+        conv_out_cap = args.capacity
         self.conv = nn.Sequential(
-            nn.Conv2d(1, cap, (3, 3), padding=(0, 0), bias=False),
+            HarmonicStacking(48, args.hcnn_undertones, args.hcnn_overtones),
+            nn.Conv2d(1*hcnn_mult, conv_out_cap, (3, 3), padding=(0, 0), bias=False),
             # the next two layers were not in the paper description,
             # but they should have been! (it does not change very much though)
-            nn.BatchNorm2d(cap, **bn_param),
+            nn.BatchNorm2d(conv_out_cap, **bn_param),
             nn.ReLU(),
 
-            nn.Conv2d(cap, cap, (3, 3), padding=(0, 0), bias=False),
-            nn.BatchNorm2d(cap, **bn_param),
+            HarmonicStacking(48, args.hcnn_undertones, args.hcnn_overtones),
+            nn.Conv2d(hcnn_conv_in_cap, conv_out_cap, (3, 3), padding=(0, 0), bias=False),
+            nn.BatchNorm2d(conv_out_cap, **bn_param),
             nn.ReLU(),
 
             nn.MaxPool2d((1, 2)),
             nn.Dropout2d(p=0.25),
 
-            nn.Conv2d(cap, cap, (1, 3), padding=(0, 0), bias=False),
-            nn.BatchNorm2d(cap, **bn_param),
+            HarmonicStacking(48, args.hcnn_undertones, args.hcnn_overtones),
+            nn.Conv2d(hcnn_conv_in_cap, conv_out_cap, (1, 3), padding=(0, 0), bias=False),
+            nn.BatchNorm2d(conv_out_cap, **bn_param),
             nn.ReLU(),
 
-            nn.Conv2d(cap, cap, (1, 3), padding=(0, 0), bias=False),
-            nn.BatchNorm2d(cap, **bn_param),
+            HarmonicStacking(48, args.hcnn_undertones, args.hcnn_overtones),
+            nn.Conv2d(hcnn_conv_in_cap, conv_out_cap, (1, 3), padding=(0, 0), bias=False),
+            nn.BatchNorm2d(conv_out_cap, **bn_param),
             nn.ReLU(),
 
             nn.MaxPool2d((1, 2)),
             nn.Dropout2d(0.25),
 
-            nn.Conv2d(cap, cap*2, (1, 25), padding=(0, 0), bias=False),
-            nn.BatchNorm2d(cap*2, **bn_param),
+            HarmonicStacking(48, args.hcnn_undertones, args.hcnn_overtones),
+            nn.Conv2d(hcnn_conv_in_cap, conv_out_cap*2, (1, 25), padding=(0, 0), bias=False),
+            nn.BatchNorm2d(conv_out_cap*2, **bn_param),
             nn.ReLU(),
 
-            nn.Conv2d(cap*2, cap*4, (1, 25), padding=(0, 0), bias=False),
-            nn.BatchNorm2d(cap*4, **bn_param),
+            nn.Conv2d(conv_in_cap*2, conv_out_cap*4, (1, 25), padding=(0, 0), bias=False),
+            nn.BatchNorm2d(conv_out_cap*4, **bn_param),
             nn.ReLU(),
 
-            nn.Conv2d(cap*4, 88, (1, 1), padding=(0, 0), bias=False),
+            nn.Conv2d(conv_in_cap*4, 88, (1, 1), padding=(0, 0), bias=False),
             nn.BatchNorm2d(88, **bn_param),
             nn.AvgPool2d((1, 6))
             # the sigmoid nonlinearity is not missing!
