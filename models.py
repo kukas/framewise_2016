@@ -24,13 +24,12 @@ class HarmonicStacking(nn.Module):
         # print(x.shape, "-->")
         channels = []
         for shift in self.shifts:
-            # print(shift)
             if shift == 0:
                 padded = x
             if shift > 0:
                 shifted = x[:, :, :, shift:]
                 padded = F.pad(shifted, (0, shift))
-            else:
+            elif shift < 0:
                 shifted = x[:, :, :, :shift]
                 padded = F.pad(shifted, (shift, 0))
 
