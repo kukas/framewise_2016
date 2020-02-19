@@ -26,6 +26,7 @@ def main():
                         help='where to write run state')
     parser.add_argument('model', choices=models.get_model_classes(),
                         help='any classname of model as defined in "models.py"')
+    parser.add_argument('--capacity', type=int, default=32)
     parser.add_argument('--device', type=str, default='cuda')
     args = parser.parse_args()
 
@@ -51,7 +52,7 @@ def main():
     train_dataset = ConcatDataset(train_sequences)
 
     batch_size = 128
-    n_epochs = 500
+    n_epochs = 150
 
     # go with the original definition of an 'epoch' (aka the whole dataset ...)
     # as opposed to 'arbitrary number of steps until we validate'
@@ -97,7 +98,7 @@ def main():
             args.model
         ))
 
-    net = net_class()
+    net = net_class(args)
     if args.model == 'AllConv2016':
         print('choosing AllConv2016 learnrate and learnrate schedule!')
         # this does not train all that well ... validation loss stays high all the time?

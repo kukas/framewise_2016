@@ -4,7 +4,7 @@ from torch.nn import init
 
 
 class VGGNet2016(nn.Module):
-    def __init__(self):
+    def __init__(self, args):
         super().__init__()
         # these parameters are set to what lasagne.layers.BatchNorm implements
         bn_param = dict(
@@ -14,27 +14,28 @@ class VGGNet2016(nn.Module):
             track_running_stats=True
         )
 
+        cap = args.capacity
         self.conv = nn.Sequential(
-            nn.Conv2d(1, 32, (3, 3), padding=(1, 1), bias=False),
-            nn.BatchNorm2d(32, **bn_param),
+            nn.Conv2d(1, cap, (3, 3), padding=(1, 1), bias=False),
+            nn.BatchNorm2d(cap, **bn_param),
             nn.ReLU(),
 
-            nn.Conv2d(32, 32, (3, 3), padding=(0, 0), bias=False),
-            nn.BatchNorm2d(32, **bn_param),
+            nn.Conv2d(cap, cap, (3, 3), padding=(0, 0), bias=False),
+            nn.BatchNorm2d(cap, **bn_param),
             nn.ReLU(),
 
             nn.MaxPool2d((1, 2)),
             nn.Dropout2d(0.25),
 
-            nn.Conv2d(32, 64, (3, 3), padding=(0, 0), bias=False),
-            nn.BatchNorm2d(64, **bn_param),
+            nn.Conv2d(cap, cap*2, (3, 3), padding=(0, 0), bias=False),
+            nn.BatchNorm2d(cap*2, **bn_param),
             nn.ReLU(),
 
             nn.MaxPool2d((1, 2)),
             nn.Dropout2d(0.25),
         )
 
-        self.n_flat = 64 * 1 * 55
+        self.n_flat = cap*2 * 1 * 55
         self.linear = nn.Sequential(
             nn.Linear(self.n_flat, 512, bias=False),
             nn.BatchNorm1d(512, **bn_param),
@@ -69,7 +70,7 @@ class VGGNet2016(nn.Module):
 
 
 class AllConv2016(nn.Module):
-    def __init__(self):
+    def __init__(self, args):
         super().__init__()
 
         # these parameters are set to what lasagne.layers.BatchNorm implements
@@ -79,41 +80,41 @@ class AllConv2016(nn.Module):
             affine=True,   # we learn a translation, called 'beta' in the paper and lasagne
             track_running_stats=True
         )
-
+        cap = args.capacity
         self.conv = nn.Sequential(
-            nn.Conv2d(1, 32, (3, 3), padding=(0, 0), bias=False),
+            nn.Conv2d(1, cap, (3, 3), padding=(0, 0), bias=False),
             # the next two layers were not in the paper description,
             # but they should have been! (it does not change very much though)
-            nn.BatchNorm2d(32, **bn_param),
+            nn.BatchNorm2d(cap, **bn_param),
             nn.ReLU(),
 
-            nn.Conv2d(32, 32, (3, 3), padding=(0, 0), bias=False),
-            nn.BatchNorm2d(32, **bn_param),
+            nn.Conv2d(cap, cap, (3, 3), padding=(0, 0), bias=False),
+            nn.BatchNorm2d(cap, **bn_param),
             nn.ReLU(),
 
             nn.MaxPool2d((1, 2)),
             nn.Dropout2d(p=0.25),
 
-            nn.Conv2d(32, 32, (1, 3), padding=(0, 0), bias=False),
-            nn.BatchNorm2d(32, **bn_param),
+            nn.Conv2d(cap, cap, (1, 3), padding=(0, 0), bias=False),
+            nn.BatchNorm2d(cap, **bn_param),
             nn.ReLU(),
 
-            nn.Conv2d(32, 32, (1, 3), padding=(0, 0), bias=False),
-            nn.BatchNorm2d(32, **bn_param),
+            nn.Conv2d(cap, cap, (1, 3), padding=(0, 0), bias=False),
+            nn.BatchNorm2d(cap, **bn_param),
             nn.ReLU(),
 
             nn.MaxPool2d((1, 2)),
             nn.Dropout2d(0.25),
 
-            nn.Conv2d(32, 64, (1, 25), padding=(0, 0), bias=False),
-            nn.BatchNorm2d(64, **bn_param),
+            nn.Conv2d(cap, cap*2, (1, 25), padding=(0, 0), bias=False),
+            nn.BatchNorm2d(cap*2, **bn_param),
             nn.ReLU(),
 
-            nn.Conv2d(64, 128, (1, 25), padding=(0, 0), bias=False),
-            nn.BatchNorm2d(128, **bn_param),
+            nn.Conv2d(cap*2, cap*4, (1, 25), padding=(0, 0), bias=False),
+            nn.BatchNorm2d(cap*4, **bn_param),
             nn.ReLU(),
 
-            nn.Conv2d(128, 88, (1, 1), padding=(0, 0), bias=False),
+            nn.Conv2d(cap*4, 88, (1, 1), padding=(0, 0), bias=False),
             nn.BatchNorm2d(88, **bn_param),
             nn.AvgPool2d((1, 6))
             # the sigmoid nonlinearity is not missing!
