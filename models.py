@@ -31,7 +31,7 @@ class HarmonicStacking(nn.Module):
                 padded = F.pad(shifted, (0, shift))
             elif shift < 0:
                 shifted = x[:, :, :, :shift]
-                padded = F.pad(shifted, (shift, 0))
+                padded = F.pad(shifted, (-shift, 0))
 
             channels.append(padded)
         x = torch.cat(channels, 1)
@@ -117,7 +117,7 @@ class AllConv2016(nn.Module):
         )
         hcnn_mult = args.hcnn_undertones+args.hcnn_overtones
         conv_in_cap = args.capacity # input capacity for ordinary conv layers
-        hcnn_conv_in_cap = conv_in_cap * hcnn_mult # input capacity for conv layers after harmonic stacking
+        hcnn_conv_in_cap = conv_in_cap if args.hcnn_onlyinput else conv_in_cap * hcnn_mult # input capacity for conv layers after harmonic stacking
         conv_out_cap = args.capacity
         self.conv = nn.Sequential(
             HarmonicStacking(48, args.hcnn_undertones, args.hcnn_overtones),
@@ -127,7 +127,7 @@ class AllConv2016(nn.Module):
             nn.BatchNorm2d(conv_out_cap, **bn_param),
             nn.ReLU(),
 
-            HarmonicStacking(48, args.hcnn_undertones, args.hcnn_overtones),
+            HarmonicStacking(48, args.hcnn_undertones, args.hcnn_overtones) if not args.hcnn_onlyinput else nn.Identity(),
             nn.Conv2d(hcnn_conv_in_cap, conv_out_cap, (3, 3), padding=(0, 0), bias=False),
             nn.BatchNorm2d(conv_out_cap, **bn_param),
             nn.ReLU(),
@@ -135,12 +135,12 @@ class AllConv2016(nn.Module):
             nn.MaxPool2d((1, 2)),
             nn.Dropout2d(p=0.25),
 
-            HarmonicStacking(48, args.hcnn_undertones, args.hcnn_overtones),
+            HarmonicStacking(24, args.hcnn_undertones, args.hcnn_overtones) if not args.hcnn_onlyinput else nn.Identity(),
             nn.Conv2d(hcnn_conv_in_cap, conv_out_cap, (1, 3), padding=(0, 0), bias=False),
             nn.BatchNorm2d(conv_out_cap, **bn_param),
             nn.ReLU(),
 
-            HarmonicStacking(48, args.hcnn_undertones, args.hcnn_overtones),
+            HarmonicStacking(24, args.hcnn_undertones, args.hcnn_overtones) if not args.hcnn_onlyinput else nn.Identity(),
             nn.Conv2d(hcnn_conv_in_cap, conv_out_cap, (1, 3), padding=(0, 0), bias=False),
             nn.BatchNorm2d(conv_out_cap, **bn_param),
             nn.ReLU(),
@@ -148,7 +148,7 @@ class AllConv2016(nn.Module):
             nn.MaxPool2d((1, 2)),
             nn.Dropout2d(0.25),
 
-            HarmonicStacking(48, args.hcnn_undertones, args.hcnn_overtones),
+            HarmonicStacking(12, args.hcnn_undertones, args.hcnn_overtones) if not args.hcnn_onlyinput else nn.Identity(),
             nn.Conv2d(hcnn_conv_in_cap, conv_out_cap*2, (1, 25), padding=(0, 0), bias=False),
             nn.BatchNorm2d(conv_out_cap*2, **bn_param),
             nn.ReLU(),

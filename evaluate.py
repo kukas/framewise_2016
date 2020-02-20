@@ -21,6 +21,10 @@ def main():
                         help='the list of files that will be evaluated')
     parser.add_argument('--start_end', type=str, default="0,750", help='start and end frame; the default value boils down to the first 30[s] at a framerate of 25[fps]')
     parser.add_argument('--device', type=str, default='cuda')
+    parser.add_argument('--capacity', type=int, default=32)
+    parser.add_argument('--hcnn_undertones', type=int, default=0)
+    parser.add_argument('--hcnn_overtones', type=int, default=1)
+
     args = parser.parse_args()
 
     cuda = False
@@ -70,7 +74,7 @@ def main():
     if net_class is None:
         raise RuntimeError('could not find model class named "{}" in "models.py"'.format(args.model))
 
-    net = net_class()
+    net = net_class(args)
     net.load_state_dict(torch.load(args.net_state))
 
     if cuda:

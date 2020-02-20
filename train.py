@@ -15,6 +15,7 @@ import os
 
 import argparse
 
+from torchsummary import summary
 
 def main():
     parser = argparse.ArgumentParser(description=
@@ -31,6 +32,7 @@ def main():
     parser.add_argument('--capacity', type=int, default=32)
     parser.add_argument('--hcnn_undertones', type=int, default=0)
     parser.add_argument('--hcnn_overtones', type=int, default=1)
+    parser.add_argument('--hcnn_onlyinput', type=int, default=0)
     parser.add_argument('--device', type=str, default='cuda')
     args = parser.parse_args()
 
@@ -46,7 +48,7 @@ def main():
     run_path = args.run_path
     if os.path.exists(run_path):
         print('run_path "{}" already exists!'.format(run_path))
-        exit(-1)
+        # exit(-1)
 
     ##########################################
     # prepare train data
@@ -94,7 +96,7 @@ def main():
 
     log_dir = os.path.join(run_path, 'tensorboard')
     ensure_empty_directory_exists(log_dir)
-    logger = SummaryWriter(log_dir=log_dir)
+    logger = SummaryWriter(log_dir=log_dir, flush_secs=10)
 
     net_class = getattr(models, args.model, None)
     if net_class is None:
@@ -103,6 +105,7 @@ def main():
         ))
 
     net = net_class(args)
+
     if args.model == 'AllConv2016':
         print('choosing AllConv2016 learnrate and learnrate schedule!')
         # this does not train all that well ... validation loss stays high all the time?
@@ -140,6 +143,8 @@ def main():
 
     if cuda:
         net.cuda()
+    
+    summary(net, (1, 5, 229))
 
     train(
         cuda=cuda,

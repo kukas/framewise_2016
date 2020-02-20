@@ -83,7 +83,7 @@ def train(cuda, run_path, net, optimizer, scheduler, n_epochs, train_loader, val
         if isinstance(scheduler, optim.lr_scheduler.ReduceLROnPlateau):
             scheduler.step(valid_loss, epoch=epoch)
         else:
-            scheduler.step(epoch=epoch)
+            scheduler.step()
         epoch += 1
 
 
