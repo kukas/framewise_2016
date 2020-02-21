@@ -49,28 +49,34 @@ class VGGNet2016(nn.Module):
             track_running_stats=True
         )
 
-        cap = args.capacity
+        hcnn_mult = args.hcnn_undertones+args.hcnn_overtones
+        conv_in_cap = args.capacity # input capacity for ordinary conv layers
+        hcnn_conv_in_cap = conv_in_cap if args.hcnn_onlyinput else conv_in_cap*hcnn_mult # input capacity for conv layers after harmonic stacking
+        conv_out_cap = args.capacity
         self.conv = nn.Sequential(
-            nn.Conv2d(1, cap, (3, 3), padding=(1, 1), bias=False),
-            nn.BatchNorm2d(cap, **bn_param),
+            HarmonicStacking(48, args.hcnn_undertones, args.hcnn_overtones),
+            nn.Conv2d(1*hcnn_mult, conv_out_cap, (3, 3), padding=(1, 1), bias=False),
+            nn.BatchNorm2d(conv_out_cap, **bn_param),
             nn.ReLU(),
 
-            nn.Conv2d(cap, cap, (3, 3), padding=(0, 0), bias=False),
-            nn.BatchNorm2d(cap, **bn_param),
+            HarmonicStacking(48, args.hcnn_undertones, args.hcnn_overtones) if not args.hcnn_onlyinput else nn.Identity(),
+            nn.Conv2d(hcnn_conv_in_cap, conv_out_cap, (3, 3), padding=(0, 0), bias=False),
+            nn.BatchNorm2d(conv_out_cap, **bn_param),
             nn.ReLU(),
 
             nn.MaxPool2d((1, 2)),
             nn.Dropout2d(0.25),
 
-            nn.Conv2d(cap, cap*2, (3, 3), padding=(0, 0), bias=False),
-            nn.BatchNorm2d(cap*2, **bn_param),
+            HarmonicStacking(24, args.hcnn_undertones, args.hcnn_overtones) if not args.hcnn_onlyinput else nn.Identity(),
+            nn.Conv2d(hcnn_conv_in_cap, conv_out_cap*2, (3, 3), padding=(0, 0), bias=False),
+            nn.BatchNorm2d(conv_out_cap*2, **bn_param),
             nn.ReLU(),
 
             nn.MaxPool2d((1, 2)),
             nn.Dropout2d(0.25),
         )
 
-        self.n_flat = cap*2 * 1 * 55
+        self.n_flat = conv_out_cap*2 * 1 * 55
         self.linear = nn.Sequential(
             nn.Linear(self.n_flat, 512, bias=False),
             nn.BatchNorm1d(512, **bn_param),
@@ -115,6 +121,7 @@ class AllConv2016(nn.Module):
             affine=True,   # we learn a translation, called 'beta' in the paper and lasagne
             track_running_stats=True
         )
+
         hcnn_mult = args.hcnn_undertones+args.hcnn_overtones
         conv_in_cap = args.capacity # input capacity for ordinary conv layers
         hcnn_conv_in_cap = conv_in_cap if args.hcnn_onlyinput else conv_in_cap * hcnn_mult # input capacity for conv layers after harmonic stacking
