@@ -56,7 +56,7 @@ def test(func):
         if isinstance(sched, optim.lr_scheduler.ReduceLROnPlateau):
             sched.step(fake_valid_loss, epoch=epoch)
         else:
-            sched.step(epoch=epoch)
+            sched.step()
 
     return lrs, losses, valid_losses
 
