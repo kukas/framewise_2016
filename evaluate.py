@@ -24,6 +24,7 @@ def main():
     parser.add_argument('--capacity', type=int, default=32)
     parser.add_argument('--hcnn_undertones', type=int, default=0)
     parser.add_argument('--hcnn_overtones', type=int, default=1)
+    parser.add_argument('--hcnn_onlyinput', type=int, default=0)
 
     args = parser.parse_args()
 
